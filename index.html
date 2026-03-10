@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nima OS — Real Estate Command Center</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2d3140;
+    --text: #e4e6ed;
+    --text-muted: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent2: #a29bfe;
+    --green: #00b894;
+    --orange: #fdcb6e;
+    --red: #e17055;
+    --blue: #74b9ff;
+    --pink: #fd79a8;
+    --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* SIDEBAR */
+  .sidebar { position:fixed; left:0; top:0; bottom:0; width:240px; background:var(--surface); border-right:1px solid var(--border); padding:20px 0; z-index:100; display:flex; flex-direction:column; }
+  .sidebar-brand { padding:0 20px 24px; border-bottom:1px solid var(--border); margin-bottom:12px; }
+  .sidebar-brand h1 { font-size:20px; font-weight:700; }
+  .sidebar-brand h1 span { color:var(--accent2); }
+  .sidebar-brand p { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:10px 20px; cursor:pointer; font-size:14px; color:var(--text-muted); transition:all .15s; border-left:3px solid transparent; }
+  .nav-item:hover { background:var(--surface2); color:var(--text); }
+  .nav-item.active { color:var(--accent2); border-left-color:var(--accent); background:rgba(108,92,231,.08); }
+  .nav-item .icon { font-size:18px; width:24px; text-align:center; }
+  .nav-section { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-muted); padding:16px 20px 6px; }
+
+  /* MAIN */
+  .main { margin-left:240px; padding:24px 32px; }
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* HEADER */
+  .page-header { margin-bottom:24px; }
+  .page-header h2 { font-size:24px; font-weight:700; }
+  .page-header p { color:var(--text-muted); font-size:13px; margin-top:4px; }
+
+  /* CARDS */
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+  .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+  .stat-card .label { font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
+  .stat-card .value { font-size:28px; font-weight:700; margin-top:6px; }
+  .stat-card .sub { font-size:12px; color:var(--text-muted); margin-top:4px; }
+
+  /* TABLE */
+  .table-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:24px; }
+  .table-card .card-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .table-card .card-header h3 { font-size:16px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; padding:10px 20px; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); border-bottom:1px solid var(--border); }
+  td { padding:12px 20px; font-size:13px; border-bottom:1px solid var(--border); }
+  tr:last-child td { border-bottom:none; }
+  tr:hover { background:var(--surface2); }
+
+  /* BADGES */
+  .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+  .badge-hot { background:rgba(225,112,85,.15); color:var(--red); }
+  .badge-warm { background:rgba(253,203,110,.15); color:var(--orange); }
+  .badge-cold { background:rgba(116,185,255,.15); color:var(--blue); }
+  .badge-active { background:rgba(0,184,148,.15); color:var(--green); }
+  .badge-new { background:rgba(108,92,231,.15); color:var(--accent2); }
+  .badge-buyer { background:rgba(116,185,255,.15); color:var(--blue); }
+  .badge-seller { background:rgba(253,121,168,.15); color:var(--pink); }
+
+  /* PROGRESS BAR */
+  .progress-bar { background:var(--surface2); border-radius:10px; height:8px; overflow:hidden; margin-top:8px; }
+  .progress-fill { height:100%; border-radius:10px; transition:width .3s; }
+
+  /* PIPELINE */
+  .pipeline { display:flex; gap:12px; overflow-x:auto; padding-bottom:12px; margin-bottom:24px; }
+  .pipeline-stage { min-width:200px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; flex-shrink:0; }
+  .pipeline-stage h4 { font-size:13px; margin-bottom:12px; color:var(--text-muted); }
+  .pipeline-card { background:var(--surface2); border-radius:8px; padding:10px 12px; margin-bottom:8px; font-size:13px; }
+  .pipeline-card .name { font-weight:600; }
+  .pipeline-card .detail { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+  /* CHECKLIST */
+  .checklist { list-style:none; }
+  .checklist li { padding:10px 20px; border-bottom:1px solid var(--border); font-size:13px; display:flex; align-items:center; gap:10px; }
+  .checklist li:last-child { border-bottom:none; }
+  .check { width:18px; height:18px; border:2px solid var(--border); border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .check.done { background:var(--green); border-color:var(--green); color:#fff; }
+
+  /* TEMPLATES */
+  .template-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+  .template-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; cursor:pointer; transition:all .15s; }
+  .template-card:hover { border-color:var(--accent); }
+  .template-card h4 { font-size:14px; margin-bottom:6px; }
+  .template-card p { font-size:12px; color:var(--text-muted); line-height:1.5; }
+  .template-card .stage-num { display:inline-block; background:var(--accent); color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; margin-bottom:8px; }
+
+  /* MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:999; align-items:center; justify-content:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); max-width:700px; width:90%; max-height:80vh; overflow-y:auto; padding:24px; }
+  .modal h3 { margin-bottom:16px; }
+  .modal pre { background:var(--surface2); padding:16px; border-radius:8px; font-size:12px; line-height:1.6; white-space:pre-wrap; word-wrap:break-word; }
+  .modal .close-btn { background:var(--accent); color:#fff; border:none; padding:8px 20px; border-radius:8px; cursor:pointer; margin-top:16px; font-size:13px; }
+
+  /* FEED */
+  .feed-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+  .feed-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:all .15s; }
+  .feed-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .feed-img { height:160px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:40px; }
+  .feed-body { padding:16px; }
+  .feed-body .price { font-size:20px; font-weight:700; color:var(--green); }
+  .feed-body .address { font-size:13px; margin-top:4px; }
+  .feed-body .specs { font-size:12px; color:var(--text-muted); margin-top:6px; }
+  .feed-body .tag { display:inline-block; margin-top:8px; font-size:10px; background:var(--surface2); padding:3px 8px; border-radius:6px; color:var(--text-muted); }
+
+  /* ACTION ITEMS */
+  .action-list { list-style:none; }
+  .action-list li { display:flex; align-items:flex-start; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); }
+  .action-list li:last-child { border-bottom:none; }
+  .action-priority { width:8px; height:8px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+  .action-priority.high { background:var(--red); }
+  .action-priority.med { background:var(--orange); }
+  .action-priority.low { background:var(--blue); }
+  .action-text { font-size:13px; }
+  .action-text .due { font-size:11px; color:var(--text-muted); }
+
+  /* SPHERE */
+  .touch-timeline { display:flex; gap:4px; margin-top:6px; }
+  .touch-dot { width:10px; height:10px; border-radius:50%; }
+  .touch-dot.done { background:var(--green); }
+  .touch-dot.upcoming { background:var(--surface2); border:1px solid var(--border); }
+
+  /* BTN */
+  .btn { background:var(--accent); color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; }
+  .btn:hover { opacity:.9; }
+  .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+  .btn-outline:hover { border-color:var(--accent); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <h1>Nima <span>OS</span></h1>
+    <p>Homeage Realty • Louisville, KY</p>
+  </div>
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" data-page="dashboard"><span class="icon">📊</span> Dashboard</div>
+  <div class="nav-item" data-page="actions"><span class="icon">🎯</span> Today's Actions</div>
+  <div class="nav-section">Pipeline</div>
+  <div class="nav-item" data-page="leads"><span class="icon">🧲</span> Leads</div>
+  <div class="nav-item" data-page="transactions"><span class="icon">📋</span> Transactions</div>
+  <div class="nav-item" data-page="pipeline"><span class="icon">🔄</span> Pipeline View</div>
+  <div class="nav-section">Clients</div>
+  <div class="nav-item" data-page="sphere"><span class="icon">👥</span> Sphere & Nurture</div>
+  <div class="nav-item" data-page="templates"><span class="icon">📧</span> Email Templates</div>
+  <div class="nav-section">Market</div>
+  <div class="nav-item" data-page="feed"><span class="icon">🏠</span> Louisville Feed</div>
+  <div class="nav-item" data-page="market"><span class="icon">📈</span> Market Stats</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- =================== DASHBOARD =================== -->
+  <div class="page active" id="dashboard">
+    <div class="page-header">
+      <h2>Good evening, Nima 👋</h2>
+      <p>Monday, March 2, 2026 — Here's your command center</p>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">Active Transactions</div>
+        <div class="value">3</div>
+        <div class="sub">2 buyers • 1 seller</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Hot Leads</div>
+        <div class="value" style="color:var(--red)">4</div>
+        <div class="sub">Need follow-up today</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Sphere Touches Due</div>
+        <div class="value" style="color:var(--orange)">7</div>
+        <div class="sub">This week</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Pending Revenue</div>
+        <div class="value" style="color:var(--green)">$18,750</div>
+        <div class="sub">Est. commission from active deals</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="card-header"><h3>🎯 Today's Priority Actions</h3></div>
+      <ul class="action-list">
+        <li><div class="action-priority high"></div><div class="action-text"><strong>Call Marcus Williams</strong> — Pre-approval follow-up, hasn't responded in 3 days<br><span class="due">Due: Today</span></div></li>
+        <li><div class="action-priority high"></div><div class="action-text"><strong>Send inspection email to Sarah & James Chen</strong> — Inspection is tomorrow<br><span class="due">Due: Today</span></div></li>
+        <li><div class="action-priority med"></div><div class="action-text"><strong>Draft listing description for Deborah Hayes</strong> — Photos coming back Wednesday<br><span class="due">Due: Tomorrow</span></div></li>
+        <li><div class="action-priority low"></div><div class="action-text"><strong>Sphere touch: Call Mom</strong> — Monthly check-in<br><span class="due">Due: This week</span></div></li>
+        <li><div class="action-priority low"></div><div class="action-text"><strong>Post market update on social</strong> — Louisville Q1 numbers<br><span class="due">Due: This week</span></div></li>
+      </ul>
+    </div>
+
+    <div class="table-card">
+      <div class="card-header"><h3>📋 Active Transactions</h3></div>
+      <table>
+        <tr><th>Client</th><th>Type</th><th>Property</th><th>Stage</th><th>Progress</th><th>Next Step</th></tr>
+        <tr>
+          <td><strong>Sarah & James Chen</strong></td>
+          <td><span class="badge badge-buyer">Buyer</span></td>
+          <td>1847 Bardstown Rd</td>
+          <td>Under Contract</td>
+          <td><div class="progress-bar"><div class="progress-fill" style="width:50%;background:var(--blue)"></div></div></td>
+          <td>Inspection — Mar 3</td>
+        </tr>
+        <tr>
+          <td><strong>Marcus Williams</strong></td>
+          <td><span class="badge badge-buyer">Buyer</span></td>
+          <td>TBD — Searching</td>
+          <td>Pre-Approval</td>
+          <td><div class="progress-bar"><div class="progress-fill" style="width:17%;background:var(--blue)"></div></div></td>
+          <td>Confirm pre-approval</td>
+        </tr>
+        <tr>
+          <td><strong>Deborah Hayes</strong></td>
+          <td><span class="badge badge-seller">Seller</span></td>
+          <td>3021 Frankfort Ave</td>
+          <td>Pre-Listing Prep</td>
+          <td><div class="progress-bar"><div class="progress-fill" style="width:18%;background:var(--pink)"></div></div></td>
+          <td>Photos — Mar 5</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- =================== TODAY'S ACTIONS =================== -->
+  <div class="page" id="actions">
+    <div class="page-header">
+      <h2>🎯 Today's Actions</h2>
+      <p>Your daily game plan — knock these out</p>
+    </div>
+    <div class="table-card">
+      <div class="card-header"><h3>🔴 High Priority</h3></div>
+      <ul class="action-list">
+        <li><div class="action-priority high"></div><div class="action-text"><strong>Call Marcus Williams</strong> — Follow up on pre-approval. Last contact: Feb 27. He said he'd send the letter by Friday.<br><span class="due">📞 502-555-0187</span></div></li>
+        <li><div class="action-priority high"></div><div class="action-text"><strong>Email Sarah & James Chen</strong> — Inspection prep email. Their inspection on 1847 Bardstown Rd is tomorrow 3/3 at 10 AM.<br><span class="due">📧 Template ready: Buyer Stage 7 — Inspection Prep</span></div></li>
+        <li><div class="action-priority high"></div><div class="action-text"><strong>Call Jessica Turner (Lead)</strong> — She inquired about selling her home in St. Matthews. Responded to your ad yesterday. SPEED TO LEAD.<br><span class="due">📞 502-555-0234 • Lead source: Facebook ad</span></div></li>
+      </ul>
+    </div>
+    <div class="table-card">
+      <div class="card-header"><h3>🟡 Medium Priority</h3></div>
+      <ul class="action-list">
+        <li><div class="action-priority med"></div><div class="action-text"><strong>Prep Deborah Hayes listing</strong> — Write listing description for 3021 Frankfort Ave. 3BR/2BA, 1,850 sqft, renovated kitchen, huge backyard. Photos coming Wed.<br><span class="due">Due: Tomorrow</span></div></li>
+        <li><div class="action-priority med"></div><div class="action-text"><strong>Send CMA to Ryan Cooper (Lead)</strong> — Wants to know his home value. 4512 Shelbyville Rd. Warm lead, friend of Marcus.<br><span class="due">Due: Tomorrow</span></div></li>
+      </ul>
+    </div>
+    <div class="table-card">
+      <div class="card-header"><h3>🔵 Sphere & Nurture</h3></div>
+      <ul class="action-list">
+        <li><div class="action-priority low"></div><div class="action-text"><strong>Call Mom (Shirin)</strong> — Monthly check-in. Ask about the kitchen renovation.<br><span class="due">This week</span></div></li>
+        <li><div class="action-priority low"></div><div class="action-text"><strong>Text Kevin Patel</strong> — College friend, just moved to Louisville. Potential referral source.<br><span class="due">This week</span></div></li>
+        <li><div class="action-priority low"></div><div class="action-text"><strong>Post Q1 market update</strong> — Louisville median price $253k, inventory up 30%. Draft ready in templates.<br><span class="due">This week</span></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- =================== LEADS =================== -->
+  <div class="page" id="leads">
+    <div class="page-header">
+      <h2>🧲 Lead Pipeline</h2>
+      <p>Every lead tracked — no one falls through the cracks</p>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">Total Leads</div><div class="value">8</div></div>
+      <div class="stat-card"><div class="label">Hot 🔥</div><div class="value" style="color:var(--red)">4</div></div>
+      <div class="stat-card"><div class="label">Warm 🟡</div><div class="value" style="color:var(--orange)">2</div></div>
+      <div class="stat-card"><div class="label">Cold 🔵</div><div class="value" style="color:var(--blue)">2</div></div>
+    </div>
+    <div class="table-card">
+      <div class="card-header"><h3>All Leads</h3><button class="btn">+ Add Lead</button></div>
+      <table>
+        <tr><th>Name</th><th>Type</th><th>Source</th><th>Temp</th><th>Status</th><th>Last Contact</th><th>Next Follow-Up</th><th>Notes</th></tr>
+        <tr><td><strong>Jessica Turner</strong></td><td>Seller</td><td>Facebook Ad</td><td><span class="badge badge-hot">🔥 Hot</span></td><td><span class="badge badge-new">New</span></td><td>Mar 1</td><td><strong>TODAY</strong></td><td>Wants to sell in St. Matthews</td></tr>
+        <tr><td><strong>Ryan Cooper</strong></td><td>Seller</td><td>Referral (Marcus)</td><td><span class="badge badge-hot">🔥 Hot</span></td><td>Contacted</td><td>Feb 28</td><td>Mar 3</td><td>Wants CMA on 4512 Shelbyville Rd</td></tr>
+        <tr><td><strong>Andre & Lisa Washington</strong></td><td>Buyer</td><td>Open House</td><td><span class="badge badge-hot">🔥 Hot</span></td><td>Nurturing</td><td>Feb 25</td><td>Mar 3</td><td>Looking for 4BR under $300k, Highlands area</td></tr>
+        <tr><td><strong>Tiffany Brooks</strong></td><td>Buyer</td><td>Zillow</td><td><span class="badge badge-hot">🔥 Hot</span></td><td>Contacted</td><td>Feb 27</td><td>Mar 2</td><td>First-time buyer, pre-approved $220k</td></tr>
+        <tr><td><strong>Mike & Jenny Sullivan</strong></td><td>Buyer</td><td>Referral</td><td><span class="badge badge-warm">🟡 Warm</span></td><td>Nurturing</td><td>Feb 20</td><td>Mar 5</td><td>Looking in spring, 3BR Crescent Hill</td></tr>
+        <tr><td><strong>David Kim</strong></td><td>Seller</td><td>Door knock</td><td><span class="badge badge-warm">🟡 Warm</span></td><td>Nurturing</td><td>Feb 22</td><td>Mar 7</td><td>Thinking about selling, not in a rush</td></tr>
+        <tr><td><strong>Carmen Rodriguez</strong></td><td>Buyer</td><td>Instagram</td><td><span class="badge badge-cold">🔵 Cold</span></td><td>Contacted</td><td>Feb 10</td><td>Mar 10</td><td>6+ months out, relocating from Miami</td></tr>
+        <tr><td><strong>Brian Foster</strong></td><td>Buyer</td><td>Website</td><td><span class="badge badge-cold">🔵 Cold</span></td><td>Contacted</td><td>Feb 5</td><td>Mar 5</td><td>Just browsing, no timeline</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- =================== TRANSACTIONS =================== -->
+  <div class="page" id="transactions">
+    <div class="page-header">
+      <h2>📋 Active Transactions</h2>
+      <p>Full checklist view for every active deal</p>
+    </div>
+
+    <!-- Transaction 1 -->
+    <div class="table-card">
+      <div class="card-header">
+        <h3>🏠 Sarah & James Chen — <span style="color:var(--blue)">Buyer</span></h3>
+        <span class="badge badge-active">Under Contract</span>
+      </div>
+      <div style="padding:16px 20px;">
+        <p style="font-size:13px;color:var(--text-muted)"><strong>Property:</strong> 1847 Bardstown Rd, Louisville, KY 40205 • <strong>Price:</strong> $275,000 • <strong>Closing:</strong> Mar 28, 2026</p>
+        <div class="progress-bar" style="margin:12px 0;height:10px"><div class="progress-fill" style="width:50%;background:linear-gradient(90deg,var(--accent),var(--blue))"></div></div>
+        <p style="font-size:11px;color:var(--text-muted)">Stage 7 of 12 — Inspection</p>
+      </div>
+      <ul class="checklist">
+        <li><div class="check done">✓</div> Buyer consultation completed</li>
+        <li><div class="check done">✓</div> Pre-approval confirmed — $300k with First Federal</li>
+        <li><div class="check done">✓</div> MLS search set up & active</li>
+        <li><div class="check done">✓</div> Showings — viewed 8 homes, loved 1847 Bardstown</li>
+        <li><div class="check done">✓</div> Offer submitted at $275,000</li>
+        <li><div class="check done">✓</div> Offer accepted — under contract Feb 18</li>
+        <li><div class="check done">✓</div> Earnest money deposited — $5,000</li>
+        <li><div class="check">⬜</div> <strong>Home inspection — Mar 3, 10:00 AM</strong></li>
+        <li><div class="check">⬜</div> Inspection contingency resolution</li>
+        <li><div class="check">⬜</div> Appraisal</li>
+        <li><div class="check">⬜</div> Loan processing & clear to close</li>
+        <li><div class="check">⬜</div> Final walkthrough</li>
+        <li><div class="check">⬜</div> Closing — Mar 28</li>
+      </ul>
+    </div>
+
+    <!-- Transaction 2 -->
+    <div class="table-card">
+      <div class="card-header">
+        <h3>🏠 Marcus Williams — <span style="color:var(--blue)">Buyer</span></h3>
+        <span class="badge badge-new">Pre-Approval</span>
+      </div>
+      <div style="padding:16px 20px;">
+        <p style="font-size:13px;color:var(--text-muted)"><strong>Budget:</strong> $200-250k • <strong>Areas:</strong> Germantown, Schnitzelburg, South Louisville • <strong>Looking for:</strong> 3BR/2BA</p>
+        <div class="progress-bar" style="margin:12px 0;height:10px"><div class="progress-fill" style="width:17%;background:linear-gradient(90deg,var(--accent),var(--blue))"></div></div>
+        <p style="font-size:11px;color:var(--text-muted)">Stage 2 of 12 — Pre-Approval</p>
+      </div>
+      <ul class="checklist">
+        <li><div class="check done">✓</div> Buyer consultation completed — Feb 20</li>
+        <li><div class="check">⬜</div> <strong>Pre-approval letter — waiting on Marcus (follow up TODAY)</strong></li>
+        <li><div class="check">⬜</div> Set up MLS search</li>
+        <li><div class="check">⬜</div> Schedule first showings</li>
+      </ul>
+    </div>
+
+    <!-- Transaction 3 -->
+    <div class="table-card">
+      <div class="card-header">
+        <h3>🏠 Deborah Hayes — <span style="color:var(--pink)">Seller</span></h3>
+        <span class="badge badge-new">Pre-Listing</span>
+      </div>
+      <div style="padding:16px 20px;">
+        <p style="font-size:13px;color:var(--text-muted)"><strong>Property:</strong> 3021 Frankfort Ave, Louisville, KY 40206 • <strong>List Price:</strong> $349,000 • <strong>Target Live:</strong> Mar 8</p>
+        <div class="progress-bar" style="margin:12px 0;height:10px"><div class="progress-fill" style="width:18%;background:linear-gradient(90deg,var(--accent),var(--pink))"></div></div>
+        <p style="font-size:11px;color:var(--text-muted)">Stage 2 of 11 — Pre-Listing Prep</p>
+      </div>
+      <ul class="checklist">
+        <li><div class="check done">✓</div> Listing consultation — Feb 24</li>
+        <li><div class="check done">✓</div> CMA presented — recommended $345-355k</li>
+        <li><div class="check done">✓</div> Listing agreement signed — Feb 25</li>
+        <li><div class="check done">✓</div> Walkthrough done — minor touch-ups recommended</li>
+        <li><div class="check">⬜</div> <strong>Professional photos — Mar 5</strong></li>
+        <li><div class="check">⬜</div> Write listing description</li>
+        <li><div class="check">⬜</div> Seller disclosure form</li>
+        <li><div class="check">⬜</div> Go live on MLS</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- =================== PIPELINE VIEW =================== -->
+  <div class="page" id="pipeline">
+    <div class="page-header">
+      <h2>🔄 Pipeline View</h2>
+      <p>Visual kanban of every deal in motion</p>
+    </div>
+    <div class="pipeline">
+      <div class="pipeline-stage">
+        <h4>🆕 New Leads (3)</h4>
+        <div class="pipeline-card"><div class="name">Jessica Turner</div><div class="detail">Seller • Facebook Ad • St. Matthews</div></div>
+        <div class="pipeline-card"><div class="name">Carmen Rodriguez</div><div class="detail">Buyer • Instagram • Miami relocation</div></div>
+        <div class="pipeline-card"><div class="name">Brian Foster</div><div class="detail">Buyer • Website • Just browsing</div></div>
+      </div>
+      <div class="pipeline-stage">
+        <h4>📞 Contacted (2)</h4>
+        <div class="pipeline-card"><div class="name">Ryan Cooper</div><div class="detail">Seller • Wants CMA • Shelbyville Rd</div></div>
+        <div class="pipeline-card"><div class="name">Tiffany Brooks</div><div class="detail">Buyer • Pre-approved $220k</div></div>
+      </div>
+      <div class="pipeline-stage">
+        <h4>🔥 Nurturing (3)</h4>
+        <div class="pipeline-card"><div class="name">Andre & Lisa Washington</div><div class="detail">Buyer • 4BR under $300k • Highlands</div></div>
+        <div class="pipeline-card"><div class="name">Mike & Jenny Sullivan</div><div class="detail">Buyer • Spring timeline • Crescent Hill</div></div>
+        <div class="pipeline-card"><div class="name">David Kim</div><div class="detail">Seller • Not in a rush</div></div>
+      </div>
+      <div class="pipeline-stage">
+        <h4>📝 Pre-Approval (1)</h4>
+        <div class="pipeline-card"><div class="name">Marcus Williams</div><div class="detail">Buyer • $200-250k • Waiting on letter</div></div>
+      </div>
+      <div class="pipeline-stage">
+        <h4>🏠 Pre-Listing (1)</h4>
+        <div class="pipeline-card"><div class="name">Deborah Hayes</div><div class="detail">Seller • 3021 Frankfort Ave • $349k</div></div>
+      </div>
+      <div class="pipeline-stage">
+        <h4>📋 Under Contract (1)</h4>
+        <div class="pipeline-card"><div class="name">Sarah & James Chen</div><div class="detail">Buyer • 1847 Bardstown Rd • $275k</div></div>
+      </div>
+      <div class="pipeline-stage">
+        <h4>🔑 Closed (0)</h4>
+        <div class="pipeline-card" style="color:var(--text-muted);text-align:center;">No closings yet — let's change that 💪</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== SPHERE =================== -->
+  <div class="page" id="sphere">
+    <div class="page-header">
+      <h2>👥 Sphere & Past Client Nurture</h2>
+      <p>36 touches per year — stay top of mind</p>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">Sphere Size</div><div class="value">24</div></div>
+      <div class="stat-card"><div class="label">Touches This Month</div><div class="value" style="color:var(--green)">8</div></div>
+      <div class="stat-card"><div class="label">Overdue Touches</div><div class="value" style="color:var(--red)">3</div></div>
+      <div class="stat-card"><div class="label">Past Clients</div><div class="value">1</div></div>
+    </div>
+    <div class="table-card">
+      <div class="card-header"><h3>Sphere Contacts — Due for Touch</h3></div>
+      <table>
+        <tr><th>Name</th><th>Relationship</th><th>Last Touch</th><th>Next Due</th><th>Touches (YTD)</th><th>Notes</th></tr>
+        <tr><td><strong>Shirin (Mom)</strong></td><td>Family</td><td>Feb 5</td><td style="color:var(--red)"><strong>Overdue</strong></td><td>4 / 36</td><td>Ask about kitchen renovation</td></tr>
+        <tr><td><strong>Kevin Patel</strong></td><td>College friend</td><td>Feb 10</td><td style="color:var(--red)"><strong>Overdue</strong></td><td>2 / 36</td><td>Just moved to Louisville, potential referrals</td></tr>
+        <tr><td><strong>Ali Rezaei</strong></td><td>Friend</td><td>Feb 1</td><td style="color:var(--red)"><strong>Overdue</strong></td><td>3 / 36</td><td>Works at UofL, knows a lot of people</td></tr>
+        <tr><td><strong>Tony Martinez</strong></td><td>Olympus regular</td><td>Feb 20</td><td>Mar 5</td><td>5 / 36</td><td>Mentioned his sister is looking to buy</td></tr>
+        <tr><td><strong>Priya Sharma</strong></td><td>Neighbor</td><td>Feb 18</td><td>Mar 8</td><td>3 / 36</td><td>HOA board, connected in community</td></tr>
+        <tr><td><strong>Jason & Emily Clark</strong></td><td>Past client</td><td>Feb 14</td><td>Mar 14</td><td>4 / 36</td><td>Closed Dec 2025. Anniversary in Dec. Love their home.</td></tr>
+        <tr><td><strong>Omar Hassan</strong></td><td>Olympus business partner</td><td>Feb 22</td><td>Mar 15</td><td>6 / 36</td><td>Has contractor connections</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- =================== EMAIL TEMPLATES =================== -->
+  <div class="page" id="templates">
+    <div class="page-header">
+      <h2>📧 Email Templates</h2>
+      <p>Click any template to view — tell Asgari a stage change and the email gets drafted automatically</p>
+    </div>
+    <h3 style="margin-bottom:12px;font-size:16px;">Buyer Emails</h3>
+    <div class="template-list" style="margin-bottom:24px;">
+      <div class="template-card" onclick="showTemplate('b1')"><div class="stage-num">Stage 1</div><h4>Welcome + Process Overview</h4><p>Sent after initial buyer consultation. Lays out the entire process.</p></div>
+      <div class="template-card" onclick="showTemplate('b2')"><div class="stage-num">Stage 2</div><h4>Pre-Approval Confirmed</h4><p>Congrats on pre-approval, here's your budget, search starts now.</p></div>
+      <div class="template-card" onclick="showTemplate('b3')"><div class="stage-num">Stage 3</div><h4>Search Kickoff</h4><p>MLS search is live. Tips on what to look for.</p></div>
+      <div class="template-card" onclick="showTemplate('b5')"><div class="stage-num">Stage 5</div><h4>Offer Submitted</h4><p>Your offer is in — here's what to expect.</p></div>
+      <div class="template-card" onclick="showTemplate('b6')"><div class="stage-num">Stage 6</div><h4>Under Contract! 🎉</h4><p>Offer accepted! Key dates, earnest money, inspection scheduling.</p></div>
+      <div class="template-card" onclick="showTemplate('b7')"><div class="stage-num">Stage 7</div><h4>Inspection Complete</h4><p>Results summary, what to request, deadline reminders.</p></div>
+      <div class="template-card" onclick="showTemplate('b10')"><div class="stage-num">Stage 10</div><h4>Closing Prep</h4><p>What to bring, walkthrough details, final checklist.</p></div>
+      <div class="template-card" onclick="showTemplate('b11')"><div class="stage-num">Stage 11</div><h4>Welcome Home! 🔑</h4><p>Congratulations email with first-week checklist.</p></div>
+      <div class="template-card" onclick="showTemplate('b12')"><div class="stage-num">Stage 12</div><h4>Thank You + Review</h4><p>Post-closing thank you and Google review request.</p></div>
+    </div>
+    <h3 style="margin-bottom:12px;font-size:16px;">Seller Emails</h3>
+    <div class="template-list" style="margin-bottom:24px;">
+      <div class="template-card" onclick="showTemplate('s1')"><div class="stage-num">Stage 1</div><h4>Welcome + Our Plan</h4><p>Post listing consultation. The game plan.</p></div>
+      <div class="template-card" onclick="showTemplate('s3')"><div class="stage-num">Stage 3</div><h4>Your Home Is LIVE 🚀</h4><p>Listed! What to expect, showing prep tips.</p></div>
+      <div class="template-card" onclick="showTemplate('s5')"><div class="stage-num">Stage 5</div><h4>Offer Received! 📨</h4><p>Offer details, analysis, and options.</p></div>
+      <div class="template-card" onclick="showTemplate('s6')"><div class="stage-num">Stage 6</div><h4>Under Contract! 🎉</h4><p>Accepted! Next steps and key dates.</p></div>
+      <div class="template-card" onclick="showTemplate('s10')"><div class="stage-num">Stage 10</div><h4>Congratulations — SOLD!</h4><p>It's done. Thank you and next steps.</p></div>
+    </div>
+    <h3 style="margin-bottom:12px;font-size:16px;">Lead Follow-Up</h3>
+    <div class="template-list">
+      <div class="template-card" onclick="showTemplate('l1')"><div class="stage-num">Speed</div><h4>First Response (< 5 min)</h4><p>Immediate response to new leads by source type.</p></div>
+      <div class="template-card" onclick="showTemplate('l2')"><div class="stage-num">Day 1</div><h4>Follow-Up #2</h4><p>24-hour follow-up if no response.</p></div>
+      <div class="template-card" onclick="showTemplate('l5')"><div class="stage-num">Break</div><h4>The Breakup Message</h4><p>Respectful close-out after no response.</p></div>
+    </div>
+  </div>
+
+  <!-- =================== LOUISVILLE FEED =================== -->
+  <div class="page" id="feed">
+    <div class="page-header">
+      <h2>🏠 Louisville Housing Feed</h2>
+      <p>Active listings across Louisville & Jefferson County — updated daily</p>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">Median Price</div><div class="value" style="color:var(--green)">$253,696</div><div class="sub">↑ 2.7% YoY</div></div>
+      <div class="stat-card"><div class="label">Active Listings</div><div class="value">2,847</div><div class="sub">↑ 30% from 2024</div></div>
+      <div class="stat-card"><div class="label">Avg Days on Market</div><div class="value">28</div></div>
+      <div class="stat-card"><div class="label">New This Week</div><div class="value">142</div></div>
+    </div>
+    <div class="feed-grid">
+      <div class="feed-card"><div class="feed-img">🏡</div><div class="feed-body"><div class="price">$274,900</div><div class="address">1847 Bardstown Rd, Louisville 40205</div><div class="specs">3 bed • 2 bath • 1,650 sqft • Built 1940</div><div class="tag">Highlands • Under Contract (YOUR CLIENT)</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏠</div><div class="feed-body"><div class="price">$349,000</div><div class="address">3021 Frankfort Ave, Louisville 40206</div><div class="specs">3 bed • 2 bath • 1,850 sqft • Built 1952</div><div class="tag">Crescent Hill • YOUR LISTING — Coming Soon</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏘️</div><div class="feed-body"><div class="price">$189,900</div><div class="address">2215 Grinstead Dr, Louisville 40204</div><div class="specs">2 bed • 1 bath • 1,100 sqft • Built 1935</div><div class="tag">Cherokee Triangle • 5 days on market</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏡</div><div class="feed-body"><div class="price">$225,000</div><div class="address">1432 S Shelby St, Louisville 40217</div><div class="specs">3 bed • 1.5 bath • 1,400 sqft • Built 1920</div><div class="tag">Germantown • 3 days on market</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏠</div><div class="feed-body"><div class="price">$299,500</div><div class="address">4512 Shelbyville Rd, Louisville 40207</div><div class="specs">4 bed • 2.5 bath • 2,100 sqft • Built 1965</div><div class="tag">St. Matthews • Lead: Ryan Cooper wants CMA</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏘️</div><div class="feed-body"><div class="price">$198,000</div><div class="address">3847 Southern Pkwy, Louisville 40214</div><div class="specs">3 bed • 1 bath • 1,250 sqft • Built 1948</div><div class="tag">Beechmont • 12 days on market</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏡</div><div class="feed-body"><div class="price">$315,000</div><div class="address">2903 Tremont Dr, Louisville 40205</div><div class="specs">4 bed • 2 bath • 2,000 sqft • Built 1955</div><div class="tag">Highlands • Match for Washington (Lead)</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏠</div><div class="feed-body"><div class="price">$174,500</div><div class="address">1107 E Burnett Ave, Louisville 40217</div><div class="specs">2 bed • 1 bath • 950 sqft • Built 1910</div><div class="tag">Schnitzelburg • Match for Marcus Williams</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏘️</div><div class="feed-body"><div class="price">$259,900</div><div class="address">5201 Dreamland Dr, Louisville 40218</div><div class="specs">3 bed • 2 bath • 1,500 sqft • Built 1972</div><div class="tag">Fern Creek • New listing</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏡</div><div class="feed-body"><div class="price">$425,000</div><div class="address">1508 Cherokee Rd, Louisville 40205</div><div class="specs">5 bed • 3 bath • 3,200 sqft • Built 1928</div><div class="tag">Cherokee Triangle • 8 days on market</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏠</div><div class="feed-body"><div class="price">$215,000</div><div class="address">834 Vine St, Louisville 40204</div><div class="specs">3 bed • 2 bath • 1,350 sqft • Built 1925</div><div class="tag">Old Louisville • Match for Tiffany Brooks</div></div></div>
+      <div class="feed-card"><div class="feed-img">🏘️</div><div class="feed-body"><div class="price">$289,000</div><div class="address">3615 Lexington Rd, Louisville 40207</div><div class="specs">3 bed • 2.5 bath • 1,900 sqft • Built 1960</div><div class="tag">St. Matthews • 2 days on market</div></div></div>
+    </div>
+  </div>
+
+  <!-- =================== MARKET STATS =================== -->
+  <div class="page" id="market">
+    <div class="page-header">
+      <h2>📈 Louisville Market Stats</h2>
+      <p>Q1 2026 data — use this for client conversations and social posts</p>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">Median Home Price</div><div class="value" style="color:var(--green)">$253,696</div><div class="sub">↑ 2.7% from 2025</div></div>
+      <div class="stat-card"><div class="label">Active Inventory</div><div class="value">2,847</div><div class="sub">↑ 30% YoY — more options for buyers</div></div>
+      <div class="stat-card"><div class="label">New Listings (2025)</div><div class="value">22,904</div><div class="sub">↑ 12.5% from 2024 (20,361)</div></div>
+      <div class="stat-card"><div class="label">Avg Days on Market</div><div class="value">28</div><div class="sub">Homes still moving fast</div></div>
+    </div>
+    <div class="table-card">
+      <div class="card-header"><h3>Neighborhood Breakdown</h3></div>
+      <table>
+        <tr><th>Neighborhood</th><th>Median Price</th><th>Avg DOM</th><th>Inventory</th><th>Trend</th></tr>
+        <tr><td>Highlands</td><td>$285,000</td><td>22</td><td>Low</td><td style="color:var(--green)">↑ Hot</td></tr>
+        <tr><td>St. Matthews</td><td>$310,000</td><td>25</td><td>Medium</td><td style="color:var(--green)">↑ Strong</td></tr>
+        <tr><td>Crescent Hill</td><td>$340,000</td><td>20</td><td>Low</td><td style="color:var(--green)">↑ Very Hot</td></tr>
+        <tr><td>Germantown</td><td>$195,000</td><td>30</td><td>Medium</td><td style="color:var(--green)">↑ Rising</td></tr>
+        <tr><td>Old Louisville</td><td>$175,000</td><td>35</td><td>High</td><td style="color:var(--orange)">→ Stable</td></tr>
+        <tr><td>Cherokee Triangle</td><td>$320,000</td><td>18</td><td>Very Low</td><td style="color:var(--green)">↑ Hot</td></tr>
+        <tr><td>Beechmont</td><td>$185,000</td><td>32</td><td>Medium</td><td style="color:var(--green)">↑ Growing</td></tr>
+        <tr><td>Fern Creek</td><td>$240,000</td><td>28</td><td>High</td><td style="color:var(--orange)">→ Stable</td></tr>
+        <tr><td>Schnitzelburg</td><td>$210,000</td><td>24</td><td>Low</td><td style="color:var(--green)">↑ Trendy</td></tr>
+        <tr><td>South Louisville</td><td>$165,000</td><td>38</td><td>High</td><td style="color:var(--orange)">→ Stable</td></tr>
+      </table>
+    </div>
+    <div class="table-card">
+      <div class="card-header"><h3>💬 Talking Points for Clients</h3></div>
+      <ul class="action-list">
+        <li><div class="action-priority med"></div><div class="action-text"><strong>For Buyers:</strong> "Inventory is up 30% — you have more options than buyers had last year. But good homes still go fast, especially in Highlands and Crescent Hill."</div></li>
+        <li><div class="action-priority med"></div><div class="action-text"><strong>For Sellers:</strong> "Prices are still climbing — up 2.7% — and well-priced homes in popular neighborhoods are selling in under 3 weeks. Now is a great time to list."</div></li>
+        <li><div class="action-priority med"></div><div class="action-text"><strong>For Sphere:</strong> "Your home has likely appreciated since you bought it. Want me to run a quick market analysis? No pressure, just good to know."</div></li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <pre id="modal-body"></pre>
+    <button class="close-btn" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+// NAV
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(item.dataset.page).classList.add('active');
+  });
+});
+
+// TEMPLATES
+const templates = {
+  b1: {title:"Stage 1: Welcome + Process Overview", body:`Subject: Welcome — Let's Find Your Home 🏠\n\nHi [CLIENT NAME],\n\nIt was great meeting with you today. I'm excited to help you find your next home here in Louisville.\n\nHere's what to expect:\n1. Get pre-approved — this tells us your budget\n2. Home search — I'll send listings + schedule showings\n3. Make an offer — when you find the one\n4. Under contract — inspections, appraisal, loan\n5. Closing — sign papers, get keys\n\nI'll keep you updated at every step.\n\nNima\nHomeage Realty | Louisville, KY`},
+  b2: {title:"Stage 2: Pre-Approval Confirmed", body:`Subject: Great News — You're Pre-Approved!\n\nHi [CLIENT NAME],\n\nYour pre-approval is confirmed!\n• Budget: Up to [AMOUNT]\n• You're a serious buyer now\n• We're ready to search\n\nI've started setting up your MLS search. You'll get listings soon — let me know which ones catch your eye.\n\nNima`},
+  b3: {title:"Stage 3: Search Kickoff", body:`Subject: Your Home Search Is Live\n\nHi [CLIENT NAME],\n\nYour custom search is active! Tips:\n• Star/save ones you like\n• Don't overthink — if it looks good, let's see it\n• New listings move fast — text me ASAP if excited\n\nNima`},
+  b5: {title:"Stage 5: Offer Submitted", body:`Subject: Your Offer Has Been Submitted! 📨\n\nHi [CLIENT NAME],\n\nYour offer on [PROPERTY] has been submitted.\n• Seller has until [DEADLINE] to respond\n• They can accept, counter, or decline\n• I'll contact you as soon as I hear anything\n\nTry not to stress. I'll keep you posted.\n\nNima`},
+  b6: {title:"Stage 6: Under Contract! 🎉", body:`Subject: 🎉 Congratulations — You're Under Contract!\n\nHi [CLIENT NAME],\n\nThe seller accepted! You're under contract on [PROPERTY].\n\nNext steps:\n• Earnest money: [AMOUNT] due by [DATE]\n• Home inspection: Scheduling for [DATE]\n\nKey dates:\n• Inspection deadline: [DATE]\n• Appraisal deadline: [DATE]\n• Closing date: [DATE]\n\nI'll guide you through every step.\n\nNima`},
+  b7: {title:"Stage 7: Inspection Complete", body:`Subject: Inspection Results\n\nHi [CLIENT NAME],\n\nInspection on [PROPERTY] is complete.\n\nOverall: [SUMMARY]\n\nKey findings:\n• [ITEM 1]\n• [ITEM 2]\n• [ITEM 3]\n\nMy recommendation: [ANALYSIS]\n\nDeadline to respond: [DATE]\nLet's connect to review.\n\nNima`},
+  b10: {title:"Stage 10: Closing Prep", body:`Subject: Closing Day Prep 🏁\n\nHi [CLIENT NAME],\n\nClosing details:\n• Date: [DATE]\n• Time: [TIME]\n• Location: [ADDRESS]\n\nBring:\n• Valid photo ID\n• Cashier's check for [AMOUNT]\n• Checkbook (just in case)\n\nFinal walkthrough: [DATE/TIME]\nReview your Closing Disclosure.\n\nAlmost home!\n\nNima`},
+  b11: {title:"Stage 11: Welcome Home! 🔑", body:`Subject: 🔑 Welcome Home!\n\nHi [CLIENT NAME],\n\nCongratulations — you are officially a homeowner!\n\nFirst week checklist:\n• Transfer utilities\n• Change address (USPS, bank, employer)\n• Change the locks\n• Locate breaker box & water shut-off\n\nKeep my number saved — I'm always here.\n\nNima`},
+  b12: {title:"Stage 12: Thank You + Review", body:`Subject: Quick Favor? 🙏\n\nHi [CLIENT NAME],\n\nI hope you're settling in! Would you mind leaving a quick Google review?\n\n👉 [GOOGLE REVIEW LINK]\n\nEven a sentence or two helps enormously.\n\nAnd if you know anyone looking to buy or sell in Louisville, I'd love the referral.\n\nThank you!\nNima`},
+  s1: {title:"Seller Stage 1: Welcome + Plan", body:`Subject: Let's Get Your Home Sold\n\nHi [CLIENT NAME],\n\nHere's the plan:\n• Listing price: [PRICE]\n• Strategy: [STRATEGY]\n\nNext steps:\n1. Prep your home (I'll give you a list)\n2. Professional photography\n3. Go live on MLS + marketing push\n4. Showings & offers\n5. Closing\n\nNima`},
+  s3: {title:"Seller Stage 3: Your Home Is LIVE 🚀", body:`Subject: 🚀 Your Home Is Live!\n\nHi [CLIENT NAME],\n\nWe're live on MLS, Zillow, Realtor.com, Redfin & more.\n\nWhat to expect:\n• Showing requests incoming — stay flexible\n• Keep home show-ready\n• Leave during showings\n\nMarketing is rolling. I'll send weekly updates.\n\nLet's go!\nNima`},
+  s5: {title:"Seller Stage 5: Offer Received! 📨", body:`Subject: 📨 You've Received an Offer!\n\nHi [CLIENT NAME],\n\nOffer summary:\n• Price: [PRICE]\n• Earnest money: [AMOUNT]\n• Closing date: [DATE]\n• Contingencies: [LIST]\n\nOur options:\n1. Accept as-is\n2. Counter\n3. Decline\n\nLet's talk.\nNima`},
+  s6: {title:"Seller Stage 6: Under Contract! 🎉", body:`Subject: 🎉 Your Home Is Under Contract!\n\nHi [CLIENT NAME],\n\nKey details:\n• Sale price: [PRICE]\n• Closing date: [DATE]\n• Buyer's inspection: [DATE]\n\nImportant: Don't remove any fixtures/appliances included in the sale.\n\nWe're heading to the finish line!\nNima`},
+  s10: {title:"Seller Stage 10: SOLD!", body:`Subject: 🎉 Your Home Is Officially SOLD!\n\nHi [CLIENT NAME],\n\nIt's done — [PROPERTY] is officially sold. Congratulations!\n\nIf you need anything going forward — contractor recs, market questions — I'm always here.\n\nNima`},
+  l1: {title:"First Response (Speed to Lead)", body:`[Property inquiry:]\nHi [NAME]! This is Nima with Homeage Realty. I saw you were interested in [PROPERTY]. Great choice! Are you working with an agent, or want me to get you more info?\n\n[General buyer:]\nHi [NAME]! Thanks for reaching out! What's your timeline — looking to move soon or just exploring?\n\n[Seller:]\nHi [NAME]! Curious what your home might be worth? I can put together a quick market analysis — no obligation.`},
+  l2: {title:"Follow-Up #2 (24 hours)", body:`Hey [NAME], just following up on my message yesterday. No pressure — just want to make sure you have the info you need. I'm here when you're ready!`},
+  l5: {title:"The Breakup Message", body:`Hi [NAME], I haven't heard back so I want to respect your time. I'll stop reaching out, but I'm here whenever you need anything real estate related in Louisville. All the best!`},
+};
+
+function showTemplate(id) {
+  const t = templates[id];
+  document.getElementById('modal-title').textContent = t.title;
+  document.getElementById('modal-body').textContent = t.body;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+</script>
+</body>
+</html>
